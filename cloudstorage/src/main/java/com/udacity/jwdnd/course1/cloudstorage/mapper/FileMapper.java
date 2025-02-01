@@ -16,7 +16,6 @@ public interface FileMapper {
     File getFileById(Integer fileId);
 
     @Insert("INSERT INTO FILES (filename, contenttype, filesize, userid, filedata) VALUES(#{filename}, #{contenttype}, #{filesize}, #{userid}, #{filedata})")
-    @SelectKey(statement="SELECT files_fileId_seq.last_value from files_fileId_seq", keyProperty = "fileId", before = false, resultType = Integer.class)
     @Options(useGeneratedKeys = true, keyProperty = "fileId")
     void addFile(File file);
 

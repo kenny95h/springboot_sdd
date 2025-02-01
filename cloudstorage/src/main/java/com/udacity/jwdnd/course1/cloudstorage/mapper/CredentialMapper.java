@@ -18,7 +18,6 @@ public interface CredentialMapper {
     Credential getCredentialById(Integer credentialId);
 
     @Insert("INSERT INTO CREDENTIALS (url, username, encryptedpassword, userid, salt) VALUES(#{url}, #{username}, #{encryptedpassword}, #{userid}, #{salt})")
-    @SelectKey(statement="SELECT credentials_credentialId_seq.last_value from credentials_credentialId_seq", keyProperty = "credentialId", before = false, resultType = Integer.class)
     @Options(useGeneratedKeys = true, keyProperty = "credentialId")
     int insertCredential(Credential credential);
 
