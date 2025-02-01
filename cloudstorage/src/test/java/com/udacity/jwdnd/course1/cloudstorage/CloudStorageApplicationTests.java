@@ -22,6 +22,8 @@ class CloudStorageApplicationTests {
 
 	private WebDriver driver;
 
+	public String baseURL;
+
 	@BeforeAll
 	static void beforeAll() {
 		WebDriverManager.chromedriver().setup();
@@ -30,6 +32,7 @@ class CloudStorageApplicationTests {
 	@BeforeEach
 	public void beforeEach() {
 		this.driver = new ChromeDriver();
+		baseURL = "http://localhost:" + port;
 	}
 
 	@AfterEach
@@ -41,9 +44,218 @@ class CloudStorageApplicationTests {
 
 	@Test
 	public void getLoginPage() {
-		driver.get("http://localhost:" + this.port + "/login");
+		driver.get(baseURL + "/login");
 		Assertions.assertEquals("Login", driver.getTitle());
 	}
+
+	@Test
+	public void unauthorisedUserCannotAccessHome() {
+		driver.get(baseURL + "/login");
+		Assertions.assertEquals("Login", driver.getTitle());
+		driver.get(baseURL + "/home");
+		Assertions.assertNotEquals("Home", driver.getTitle());
+	}
+
+	@Test
+	public void createNote() {
+		doMockSignUp("Note", "Test", "Usernote", "notepass");
+		doLogIn("Usernote", "notepass");
+
+		HomePage homePage = new HomePage(driver);
+		homePage.openNotesTab();
+		WebDriverWait webDriverWait = new WebDriverWait(driver, Duration.ofSeconds(5));
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-note-button")));
+		homePage.addNoteButton();
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("note-title")));
+		homePage.createNote("This notes title", "A note description.");
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("note-added-alert")));
+		Assertions.assertEquals("New note added successfully.", driver.findElement(By.id("note-added-alert")).getText());
+
+		homePage.openNotesTab();
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-note-button")));
+		Assertions.assertTrue(driver.findElement(By.id("noteTable")).findElement(By.xpath("//tr[last()]//td[last()]")).getText().contains("A note description."));
+
+	}
+
+	@Test
+	public void updateNote() {
+		doMockSignUp("Note", "Test", "Userupnote", "notepass");
+		doLogIn("Userupnote", "notepass");
+
+		HomePage homePage = new HomePage(driver);
+		homePage.openNotesTab();
+		WebDriverWait webDriverWait = new WebDriverWait(driver, Duration.ofSeconds(5));
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-note-button")));
+		homePage.addNoteButton();
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("note-title")));
+		homePage.createNote("To Edit Note", "A note description to edit.");
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("note-added-alert")));
+
+		homePage.openNotesTab();
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-note-button")));
+
+		driver.findElement(By.id("noteTable")).findElement(By.xpath("//tr[last()]//td[1]//button")).click();
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("note-title")));
+		homePage.updateNote("Edited Note", "A note description edited.");
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("note-update-alert")));
+		Assertions.assertEquals("Note successfully updated.", driver.findElement(By.id("note-update-alert")).getText());
+
+		homePage.openNotesTab();
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-note-button")));
+		Assertions.assertFalse(driver.findElement(By.id("noteTable")).findElement(By.xpath("//tr[last()]//td[last()]")).getText().contains("A note description to edit."));
+		Assertions.assertTrue(driver.findElement(By.id("noteTable")).findElement(By.xpath("//tr[last()]//td[last()]")).getText().contains("A note description edited."));
+
+	}
+
+	@Test
+	public void deleteNote() {
+		doMockSignUp("Note", "Test", "Userdelnote", "notepass");
+		doLogIn("Userdelnote", "notepass");
+
+		HomePage homePage = new HomePage(driver);
+		homePage.openNotesTab();
+		WebDriverWait webDriverWait = new WebDriverWait(driver, Duration.ofSeconds(5));
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-note-button")));
+		homePage.addNoteButton();
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("note-title")));
+		homePage.createNote("To Delete Note", "A note description to delete.");
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("note-added-alert")));
+
+		homePage.openNotesTab();
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-note-button")));
+
+		driver.findElement(By.id("noteTable")).findElement(By.xpath("//tr[last()]//td[1]//a")).click();
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("note-delete-alert")));
+		Assertions.assertEquals("Note successfully deleted.", driver.findElement(By.id("note-delete-alert")).getText());
+
+		homePage.openNotesTab();
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-note-button")));
+		Assertions.assertTrue(driver.findElements(By.xpath("//table//tbody//tr")).isEmpty());
+
+	}
+
+	@Test
+	public void createCredential() {
+		doMockSignUp("Cred", "Test", "Usercred", "userpass");
+		doLogIn("Usercred", "userpass");
+
+		HomePage homePage = new HomePage(driver);
+		homePage.openCredsTab();
+		WebDriverWait webDriverWait = new WebDriverWait(driver, Duration.ofSeconds(5));
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-cred-button")));
+		homePage.addCredButton();
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credential-url")));
+		homePage.createCred("cred-url-example.com", "cred-username", "newpassword");
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("cred-added-alert")));
+		Assertions.assertEquals("New credential added successfully.", driver.findElement(By.id("cred-added-alert")).getText());
+
+		homePage.openCredsTab();
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-cred-button")));
+		Assertions.assertTrue(driver.findElement(By.id("credentialTable")).findElement(By.xpath("//tr[last()]//td[2]")).getText().contains("cred-username"));
+		Assertions.assertFalse(driver.findElement(By.id("credentialTable")).findElement(By.xpath("//tr[last()]//td[last()]")).getText().contains("newpassword"));
+
+	}
+
+	@Test
+	public void updateCredential() {
+		doMockSignUp("Cred", "Test", "Userupcred", "credpass");
+		doLogIn("Userupcred", "credpass");
+
+		HomePage homePage = new HomePage(driver);
+		homePage.openCredsTab();
+		WebDriverWait webDriverWait = new WebDriverWait(driver, Duration.ofSeconds(5));
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-cred-button")));
+		homePage.addCredButton();
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credential-url")));
+		homePage.createCred("cred-url-example.com", "cred-username", "newpassword");
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("cred-added-alert")));
+
+		homePage.openCredsTab();
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-cred-button")));
+
+		String oldEncryptedPassword = driver.findElement(By.id("credentialTable")).findElement(By.xpath("//tr[last()]//td[last()]")).getText();
+
+		driver.findElement(By.id("credentialTable")).findElement(By.xpath("//tr[last()]//td[1]//button")).click();
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credential-password")));
+		Assertions.assertEquals("newpassword", driver.findElement(By.id("credential-password")).getAttribute("value"));
+		homePage.updateCredPassword("updatedpassword");
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("cred-update-alert")));
+		Assertions.assertEquals("Credential successfully updated.", driver.findElement(By.id("cred-update-alert")).getText());
+
+		homePage.openCredsTab();
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-cred-button")));
+		Assertions.assertEquals("cred-username", driver.findElement(By.id("credentialTable")).findElement(By.xpath("//tr[last()]//td[2]")).getText());
+		Assertions.assertNotEquals(oldEncryptedPassword, driver.findElement(By.id("credentialTable")).findElement(By.xpath("//tr[last()]//td[last()]")).getText());
+
+	}
+
+	@Test
+	public void deleteCredential() {
+		doMockSignUp("Cred", "Test", "Userdelcred", "credpass");
+		doLogIn("Userdelcred", "credpass");
+
+		HomePage homePage = new HomePage(driver);
+		homePage.openCredsTab();
+		WebDriverWait webDriverWait = new WebDriverWait(driver, Duration.ofSeconds(5));
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-cred-button")));
+		homePage.addCredButton();
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credential-url")));
+		homePage.createCred("cred-url-example.com", "cred-username", "newpassword");
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("cred-added-alert")));
+
+		homePage.openCredsTab();
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-cred-button")));
+
+		driver.findElement(By.id("credentialTable")).findElement(By.xpath("//tr[last()]//td[1]//a")).click();
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("cred-delete-alert")));
+		Assertions.assertEquals("Credential successfully deleted.", driver.findElement(By.id("cred-delete-alert")).getText());
+
+		homePage.openCredsTab();
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-cred-button")));
+		Assertions.assertTrue(driver.findElements(By.xpath("//table//tbody//tr")).isEmpty());
+
+	}
+
+	@Test
+	public void homePageInaccessibleAfterLogout() {
+		String firstname = "Person";
+		String lastname = "Last";
+		String username = "someusername";
+		String password = "randompassword";
+
+		driver.get(baseURL + "/signup");
+		SignupPage signupPage = new SignupPage(driver);
+		signupPage.signup(firstname, lastname, username, password);
+
+		LoginPage loginPage = new LoginPage(driver);
+		loginPage.login(username, password);
+
+		HomePage homePage = new HomePage(driver);
+		Assertions.assertEquals("Home", driver.getTitle());
+		homePage.logout();
+
+		driver.get(baseURL + "/home");
+
+		Assertions.assertEquals("Login", driver.getTitle());
+
+	}
+
 
 	/**
 	 * PLEASE DO NOT DELETE THIS method.
@@ -87,7 +299,7 @@ class CloudStorageApplicationTests {
 		// You may have to modify the element "success-msg" and the sign-up 
 		// success message below depening on the rest of your code.
 		*/
-		Assertions.assertTrue(driver.findElement(By.id("success-msg")).getText().contains("You successfully signed up!"));
+		Assertions.assertEquals("You successfully signed up!", driver.findElement(By.id("success")).getText());
 	}
 
 	
@@ -135,7 +347,7 @@ class CloudStorageApplicationTests {
 	public void testRedirection() {
 		// Create a test account
 		doMockSignUp("Redirection","Test","RT","123");
-		
+
 		// Check if we have been redirected to the log in page.
 		Assertions.assertEquals("http://localhost:" + this.port + "/login", driver.getCurrentUrl());
 	}
@@ -157,7 +369,7 @@ class CloudStorageApplicationTests {
 		// Create a test account
 		doMockSignUp("URL","Test","UT","123");
 		doLogIn("UT", "123");
-		
+
 		// Try to access a random made-up URL.
 		driver.get("http://localhost:" + this.port + "/some-random-page");
 		Assertions.assertFalse(driver.getPageSource().contains("Whitelabel Error Page"));
@@ -193,7 +405,7 @@ class CloudStorageApplicationTests {
 		WebElement uploadButton = driver.findElement(By.id("uploadButton"));
 		uploadButton.click();
 		try {
-			webDriverWait.until(ExpectedConditions.presenceOfElementLocated(By.id("success")));
+			webDriverWait.until(ExpectedConditions.presenceOfElementLocated(By.id("file-added-alert")));
 		} catch (org.openqa.selenium.TimeoutException e) {
 			System.out.println("Large File upload failed");
 		}
